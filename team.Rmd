@@ -1,0 +1,171 @@
+---
+title: "ds202_lab4"
+author: "Saketh Jonnadula"
+date: "3/18/2021"
+output: html_document
+---
+
+Setting up the libraries
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(readxl)
+library(tidyverse)
+```
+
+PART 1
+Number1:
+```{r}
+Offense <-
+  read_excel('../DS202_lab4/cyclonesFootball2020.xlsx', sheet = 'Offensive')
+Defense <-
+  read_excel('../DS202_lab4/cyclonesFootball2020.xlsx', sheet = 'Defensive')
+Biography <-
+  read_excel('../dS202_lab4/cyclonesFootball2020.xlsx', sheet = 'Biography')
+head(Offense)
+head(Defense)
+head(Biography)
+
+Offense <- rename(Offense, 'Opponent' = 'Opponent_Opponent')
+Defense <- rename(Defense, 'Opponent' = 'Opponent_Opponent')
+
+Offense$Opponent <- as.factor(Offense$Opponent)
+Defense$Opponent <- as.factor(Defense$Opponent)
+
+Offense$Name <- as.factor(Offense$Name)
+Defense$Name <- as.factor(Defense$Name)
+
+Biography$Name <- as.factor(Biography$Name)
+```
+
+Number 2:
+```{r}
+Offense <-
+  Offense %>% mutate(across(Receiving_REC:Passing_INT, as.numeric))
+Defense <-
+  Defense %>% mutate(across(Tackles_Solo:Pass_PB, as.numeric))
+str(Offense)
+str(Defense)
+
+offClean <- Offense
+defClean <- Defense
+
+```
+
+Number 3:
+Part 1 - Number 3
+```{r}
+Biography <-
+  separate(Biography, Height, c('Feet', 'Inches'), sep = '-')
+Biography <- Biography %>% mutate(across(Feet:Weight, as.numeric))
+clean <- Biography
+str(Biography)
+```
+
+
+PART 2
+Number 1: 
+```{r}
+offClean <-
+  offClean %>% pivot_longer(Receiving_REC:Passing_INT,
+                            names_to = 'stat',
+                            values_to = 'value')
+newOffClean <- drop_na(offClean)
+```
+
+Number 2:
+```{r}
+newOffClean$stat <- as.factor(newOffClean$stat)
+ggplot(newOffClean, aes(x = value)) + geom_histogram(bins = 15) + facet_wrap( ~ stat, scales = 'free') +
+  ggtitle("Team Stats")
+```
+
+Looking at the graphs, "Passing_INT" and "Passing_TD" both have a mean of 0, both are skewed to the right, but "Passing_INT" is more skewed to the right compared to to "Passing_TD". Offensive players had either 0 or 1 receiving touchdown per game, with 0 touchdowns per game being more common. All the receiving stats are skewd to the right and it shows that it gets harder to score more TD's or get more yards compared to than just getting 0 or 1 td, 0 compared to 100 reciving yards etc. The same can be said to all the rushing stats it is also skewed to the right because of the same reason it is harder to get alot of yards in the game of football and if a player gets alot of yards they must be an elite player.
+
+Number 3:
+```{r}
+offClean2 <-
+  newOffClean %>% filter(stat == "Receiving_YDS" &
+                           (Opponent == "Oklahoma" |
+                              Opponent == "Oregon")) %>% pivot_wider(names_from = 'Opponent',
+                                                                     values_from = "value",
+                                                                     values_fn = mean)
+
+head(offClean2)
+ggplot(offClean2, aes(x = Oklahoma, y = Oregon)) + geom_point() + xlim(0, 100) +
+  ylim(0, 100) + ggtitle("Player Receiving Yards (Oklahoma vs. Oregon)")
+```
+
+In the graph it shows that the defense was better against Oklahoma because the players had higher Receiving Yards against Oklahoma than against Oregon. 
+
+Number 4:
+```{r}
+clean <- separate(clean, Hometown, c('City', 'State'), sep = ', ')
+head(clean[7:8], 5)
+```
+
+Number 5:
+```{r}
+df <- table(clean$State)
+df <- data.frame(rbind(df))
+df
+```
+
+It shows in the table how many players from each state we have
+
+PART 3
+Number 1:
+```{r}
+homeState <- df %>% pivot_longer(Ariz.:Wis., names_to='State', values_to='Count') %>% arrange(desc(Count))
+ggplot(clean, aes(x=`State`)) + geom_bar() + theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjus=.5))+ggtitle("Players per State") 
+```
+
+Number 2:
+```{r}
+QB1 <- newOffClean %>% filter(Name == "Purdy, Brock")
+str(QB1)
+ggplot(QB1, aes(x=value))+geom_histogram(bins = 15)+facet_wrap(~ stat, scales = 'free')+ggtitle("Brock Purdy Statistics")
+```
+
+```{r}
+ggplot(newOffClean, aes(x=value, fill=Name=="Purdy, Brock"))+geom_histogram(bins = 15)+facet_wrap(~ stat, scales = 'free')+ggtitle("Team Stats with Brock Purdy")
+```
+
+Brock Purdy's success leads to the success of Iowa State, even in the NFL if you dont have a good QB your team will not do good. That being said the first set of graphs shows how Brock Purdy influences and contributes to stats like interceptions, passing/rushing touchdowns, passing yards, rushing attempts/yards, The second set of graphs show that he has a decent hand in every stat so that being said I would say he is one or if not the most important player on our team.
+
+Number 3: 
+```{r}
+O2019 <-
+  read_excel('../DS202_lab4/cyclonesFootball2019.xlsx', sheet = 'Offensive')
+O2019 <- rename(O2019, 'Opponent' = 'Opponent_Opponent')
+O2019$Opponent <- as.factor(O2019$Opponent)
+O2019$Name <- as.factor(O2019$Name)
+O2019 <-
+  O2019 %>% mutate(across(Rushing_ATT:Passing_INT, as.numeric))
+Oclean2019 <- O2019
+offenseClean2019_219 <-
+  Oclean2019 %>% pivot_longer(Rushing_ATT:Passing_INT,
+                              names_to = 'stat',
+                              values_to = 'value')
+Oclean2019_2 <- drop_na(offenseClean2019_219)
+Oavg <-
+  newOffClean %>% group_by(Name, stat) %>% summarise_at(vars(value), list(avg2020 = mean))
+Oavg2019 <-
+  Oclean2019_2 %>% group_by(Name, stat) %>% summarise_at(vars(value), list(avg2019 = mean))
+offenseBothYears <-
+  Oavg %>% left_join(Oavg2019, by = c('Name', 'stat')) %>%
+  drop_na() %>% mutate(difference = avg2020 - avg2019) %>% mutate(improved = difference >
+                                                                    0)
+head(offenseBothYears, 5)
+
+ggplot(offenseBothYears, aes(x = Name, y = difference)) + geom_bar(stat = "identity") +
+  facet_wrap( ~ stat, scales = 'free') + ggtitle("Stat Averages (2019 - 2020)") +
+  theme(axis.text.x = element_text(
+    angle = 45,
+    vjust = 0.5,
+    hjus = 0.5,
+    size = rel(0.7)
+  ))
+```
+
+From the perspective of Passing yards we had Brock Purdy as our starting QB for both years so there should be no one else making the difference there, and it shows on the graphs. From a receiving stat standpoint it shows that In the receiving stats row you see Landen Akers and Dylan Soehner both improved in receptions per game and yards per game but only Landen Akers improved in touchdowns per game of the 2. Given Landen Akers improved in each area almost more than anyone else I would say he was the most improved receiver or if you are strictly looking at reciving yards only then Charlie Kolar is your best receiver. Although the most improved receiver was pretty close and could be argued any way you see fit, the most impactful rusher is pretty clear. You can see that Breece Hall improved more than any other back in all 3 stats which helped us dramatically in our 2020 season, which is why he is the most impactful running back that we have.
